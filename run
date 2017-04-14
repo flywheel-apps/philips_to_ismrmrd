@@ -14,90 +14,85 @@ RAW_DIR=$INPUT_DIR/raw
 USER_XSL=$INPUT_DIR/user_stylesheet
 # Output
 OUTPUT_DIR=$FLYWHEEL_BASE/output
-LOG_FILE=$OUTPUT_DIR/philips_to_ismrmrd.log
 
-(
-  CONTAINER='[flywheel/philips_to_ismrmrd]'
+CONTAINER='[flywheel/philips_to_ismrmrd]'
 
-  # Configure the ENV according to the original Docker image
-  source ${FLYWHEEL_BASE}/docker-env.sh
+# Configure the ENV according to the original Docker image
+source ${FLYWHEEL_BASE}/docker-env.sh
 
-  # Check if the input directory is not empty
-  if [[ "$(ls -A $INPUT_DIR)" ]] ; then
-      echo "$CONTAINER  Starting..."
-  else
-      echo "Input directory is empty: $INPUT_DIR"
-      exit 1
-  fi
+# Check if the input directory is not empty
+if [[ "$(ls -A $INPUT_DIR)" ]] ; then
+    echo "$CONTAINER  Starting..."
+else
+    echo "Input directory is empty: $INPUT_DIR"
+    exit 1
+fi
 
-  # Find input file in input directory with the extension .raw
-  input_file=`find $INPUT_DIR -iname '*.raw'`
-  bni=`basename "$input_file"`
-  filename="${bni%%.*}"
+# Find input file in input directory with the extension .raw
+input_file=`find $INPUT_DIR -iname '*.raw'`
+bni=`basename "$input_file"`
+filename="${bni%%.*}"
 
-  # If input file not found - raise error
-  if [[ ! -e $input_file ]]; then
-      echo "No Philips Raw file (.raw) was found within input directory $INPUT_DIR"
-      exit 1
-  fi
+# If input file not found - raise error
+if [[ ! -e $input_file ]]; then
+    echo "No Philips Raw file (.raw) was found within input directory $INPUT_DIR"
+    exit 1
+fi
 
-  # If optional directory exists search for user-supplied XSL file
-  if [[ -e $USER_XSL ]]; then
+# If optional directory exists search for user-supplied XSL file
+if [[ -e $USER_XSL ]]; then
     xsl_file=`find $USER_XSL -iname '*.xsl'`
     if [[ ! -e $xsl_file ]]; then
         echo "No stylesheet file (.xsl) was found within input directory $USER_XSL"
         exit 1
     fi
-  # If optional directory does not exist, use the Philips embedded XSL Stylesheet
-  else
-      xsl_file=$FLYWHEEL/IsmrmrdPhilips.xsl
-  fi
+# If optional directory does not exist, use the Philips embedded XSL Stylesheet
+else
+    xsl_file=$FLYWHEEL/IsmrmrdPhilips.xsl
+fi
 
-  # Get output file extension from config file, if it exists
-  if [[ -e $CONFIG_FILE ]]
-    then
-        echo "Config file is present"
-        debug=`cat $CONFIG_FILE | jq -r '.config.debug'`
-    else
-        echo "Config file is not present, using default values"
-        debug=`cat $MANIFEST_FILE | jq -r '.config.debug.default'`
+# Get output file extension from config file, if it exists
+if [[ -e $CONFIG_FILE ]]; then
+    echo "Config file is present"
+    debug=`cat $CONFIG_FILE | jq -r '.config.debug'`
+else
+    echo "Config file is not present, using default values"
+    debug=`cat $MANIFEST_FILE | jq -r '.config.debug.default'`
+fi
+
+### Sort through different configurations to add to command
+# Define debug command
+if [[ $debug = 'true' ]]; then
+    debug_cmd="--debug"
+else
+    debug_cmd=""
+fi
+
+## Call philips_to_ismrmrd
+# NOTE: filename passed to commandline through -f should not have an extension
+cmd="philips_to_ismrmrd -f $RAW_DIR/$filename -o $OUTPUT_DIR/$filename.h5 --pMapStyle $xsl_file $debug_cmd"
+echo $cmd
+# cd into output directory incase of debug files being generated
+cd $OUTPUT_DIR && $cmd
+
+# Rename the debug files, if present
+for debugfile in 'processed.xml' 'raw.xml'
+do
+    debugfile_full=$OUTPUT_DIR/$debugfile
+    if [[ -e $debugfile_full ]]; then
+        mv $debugfile_full $OUTPUT_DIR/"$filename"_"$debugfile"
     fi
+done
 
-  ### Sort through different configurations to add to command
-  # Define debug command
-  if [[ $debug = 'true' ]]; then
-      debug_cmd="--debug"
-  else
-      debug_cmd=""
-  fi
+# Get a list of the files in the output directory
+outputs=`find $OUTPUT_DIR -type f -name "*"`
+# If outputs exist, then go on...
+if [[ -z $outputs ]]; then
+    echo "No results found in output directory... Exiting"
+    exit 1
+else
+    chmod -R 777 $OUTPUT_DIR
+    echo -e "Wrote: `ls $OUTPUT_DIR`"
+fi
 
-  ## Call philips_to_ismrmrd
-  # NOTE: filename passed to commandline through -f should not have an extension
-  cmd="philips_to_ismrmrd -f $RAW_DIR/$filename -o $OUTPUT_DIR/$filename.h5 --pMapStyle $xsl_file $debug_cmd"
-  echo $cmd
-  # cd into output directory incase of debug files being generated
-  cd $OUTPUT_DIR && $cmd
-
-  # Rename the debug files, if present
-  for debugfile in 'processed.xml' 'raw.xml'
-  do
-      debugfile_full=$OUTPUT_DIR/$debugfile
-      if [[ -e $debugfile_full ]]; then
-	    mv $debugfile_full $OUTPUT_DIR/"$filename"_"$debugfile"
-      fi
-  done
-
-  # Get a list of the files in the output directory
-  outputs=`find $OUTPUT_DIR -type f -name "*"`
-  # If outputs exist, then go on...
-  if [[ -z $outputs ]]
-      then
-          echo "No results found in output directory... Exiting"
-          exit 1
-      else
-          chmod -R 777 $OUTPUT_DIR
-          echo -e "Wrote: `ls $OUTPUT_DIR`"
-  fi
-
-  exit 0
-) 2>&1 | tee $LOG_FILE
+exit 0
