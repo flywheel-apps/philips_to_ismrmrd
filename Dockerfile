@@ -16,12 +16,16 @@ RUN sudo apt-get update \
         libxslt1-dev
 
 # Download the ISMRMRD code
-RUN mkdir /ismrmrd
-ADD https://github.com/ismrmrd/ismrmrd/archive/v1.3.2.tar.gz /ismrmrd
+ADD https://github.com/ismrmrd/ismrmrd/archive/v1.3.2.tar.gz /
 # Unpack the tar.gz
-RUN cd /ismrmrd && tar -zxvf v1.3.2.tar.gz
+RUN tar -zxvf /v1.3.2.tar.gz
+RUN rm /v1.3.2.tar.gz
+# Set ISMRMRD environment variable
+ENV ISMRMRD_HOME /usr/local/ismrmrd
+# Rename the ismrmrd-1.3.2 directory to ISMRMRD_HOME
+RUN mv /ismrmrd-1.3.2 $ISMRMRD_HOME
 # Install ISMRMRD code
-RUN cd ismrmrd/ismrmrd-1.3.2 && \
+RUN cd $ISMRMRD_HOME && \
     mkdir build && \
     cd build && \
     cmake .. && \
@@ -29,8 +33,6 @@ RUN cd ismrmrd/ismrmrd-1.3.2 && \
     sudo make install && \
     sudo ldconfig
 
-# Set ISMRMRD environment variable
-ENV ISMRMRD_HOME /usr/local/ismrmrd
 # SET LD_LIBRARY_PATH
 ENV LD_LIBRARY_PATH /usr/local/lib
 
