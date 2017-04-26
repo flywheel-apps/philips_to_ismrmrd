@@ -13,7 +13,8 @@ RUN sudo apt-get update \
         libhdf5-serial-dev \
         hdf5-tools \
         libxml2-dev \
-        libxslt1-dev
+        libxslt1-dev \
+        unzip
 
 # Download the ISMRMRD code
 ADD https://github.com/ismrmrd/ismrmrd/archive/v1.3.2.tar.gz /
