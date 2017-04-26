@@ -28,16 +28,37 @@ else
     exit 1
 fi
 
-# Find input file in input directory with the extension .raw
-input_file=`find $INPUT_DIR -iname '*.raw'`
-bni=`basename "$input_file"`
-filename="${bni%%.*}"
+# Get zip file of Philips data
+zip_file=`find $INPUT_DIR -iname '*.zip'`
+# Check if zip file exists
+if [[ -e $zip_file ]] ; then
+    echo "Unzipping DICOM files"
+    unzip "$zip_file" -d $INPUT_DIR
+else
+    echo "No zip file was found within input directory $INPUT_DIR"
+    exit 1
+fi
 
-# If input file not found - raise error
-if [[ ! -e $input_file ]]; then
+# Assert .raw, .lab and .sin files are present within the zipfile
+raw_file=`find $INPUT_DIR -iname '*.raw'`
+if [[ ! -e $raw_file ]]; then
     echo "No Philips Raw file (.raw) was found within input directory $INPUT_DIR"
     exit 1
 fi
+lab_file=`find $INPUT_DIR -iname '*.lab'`
+if [[ ! -e $lab_file ]]; then
+    echo "No Philips lab file (.lab) was found within input directory $INPUT_DIR"
+    exit 1
+fi
+sin_file=`find $INPUT_DIR -iname '*.sin'`
+if [[ ! -e $sin_file ]]; then
+    echo "No Philips sin file (.sin) was found within input directory $INPUT_DIR"
+    exit 1
+fi
+
+# Get filename of zip file (to be used in output file naming scheme)
+bni=`basename "$zip_file"`
+filename="${bni%%.*}"
 
 # If optional directory exists search for user-supplied XSL file
 if [[ -e $USER_XSL ]]; then
