@@ -3,24 +3,42 @@
     "config": {
         "debug": {
             "default": false, 
-            "description": "Debug XML flag. The debug flag outputs the following additional files: raw.xml, processed.xml", 
+            "description": "Debug XML flag. The debug flag outputs the following additional files: raw.xml, processed.xml.", 
             "type": "boolean"
         }
     }, 
     "custom": {
-        "docker-image": "flywheel/philips-to-ismrmrd:v0.1"
+        "docker-image": "flywheel/philips_to_ismrmrd:v0.1"
     }, 
     "description": "The Philips to ISMRM-RD Convertor is used to convert data from Philips Raw file (.raw) to ISMRM-RD raw data format (.h5).", 
     "inputs": {
         "raw": {
             "base": "file", 
-            "description": "Input is a Philips Raw file.", 
+            "description": "Input is a Philips .raw file.", 
             "type": {
                 "enum": [
                     "Philips Raw file"
                 ]
             }
         }, 
+        "lab": {
+            "base": "file",
+            "description": "Input is Philips .lab file.",
+            "type": {
+                "enum": [
+                    "Philips Lab file"
+                ]
+            }
+        },
+        "sin": {
+            "base": "file",
+            "description": "Input is Philips .sin file.",
+            "type": {
+                "enum": [
+                    "Philips Sin file"
+                ]
+            }
+        },
         "user_stylesheet": {
             "base": "file", 
             "description": "Parameter stylesheet XSL file from user", 

@@ -10,6 +10,8 @@ CONFIG_FILE=$FLYWHEEL_BASE/config.json
 INPUT_DIR=$FLYWHEEL_BASE/input
 # Philips directory
 RAW_DIR=$INPUT_DIR/raw
+LAB_DIR=$INPUT_DIR/lab
+SIN_DIR=$INPUT_DIR/sin
 # XSL directory (optional)
 USER_XSL=$INPUT_DIR/user_stylesheet
 # Output
@@ -28,35 +30,28 @@ else
     exit 1
 fi
 
-# Get zip file of Philips data
-zip_file=`find $RAW_DIR -iname '*.zip'`
-# Check if zip file exists
-if [[ -e $zip_file ]] ; then
-    echo "Unzipping DICOM files"
-    unzip "$zip_file" -d $RAW_DIR
-else
-    echo "No zip file was found within input directory $RAW_DIR"
-    exit 1
-fi
-
-# Assert .raw, .lab and .sin files are present within the zipfile
+# Assert .raw, .lab and .sin files are present within the designated directories
 raw_file=`find $RAW_DIR -iname '*.raw'`
 if [[ ! -e $raw_file ]]; then
     echo "No Philips Raw file (.raw) was found within input directory $INPUT_DIR"
     exit 1
 fi
-lab_file=`find $RAW_DIR -iname '*.lab'`
+lab_file=`find $LAB_DIR -iname '*.lab'`
 if [[ ! -e $lab_file ]]; then
     echo "No Philips lab file (.lab) was found within input directory $INPUT_DIR"
     exit 1
 fi
-sin_file=`find $RAW_DIR -iname '*.sin'`
+sin_file=`find $SIN_DIR -iname '*.sin'`
 if [[ ! -e $sin_file ]]; then
     echo "No Philips sin file (.sin) was found within input directory $INPUT_DIR"
     exit 1
 fi
 
-# Get filename of zip file (to be used in output file naming scheme)
+# Move all of the files together into one directory 
+cp $lab_file $RAW_DIR
+cp $sin_file $RAW_DIR
+
+# Get filename of raw file (to be used in output file naming scheme)
 rawdirname=`dirname "$raw_file"`
 bni=`basename "$raw_file"`
 rawfilename="${bni%%.*}"
@@ -102,7 +97,7 @@ for debugfile in 'processed.xml' 'raw.xml'
 do
     debugfile_full=$OUTPUT_DIR/$debugfile
     if [[ -e $debugfile_full ]]; then
-        mv $debugfile_full $OUTPUT_DIR/"$filename"_"$debugfile"
+        mv $debugfile_full $OUTPUT_DIR/"$rawfilename"_"$debugfile"
     fi
 done
 
