@@ -72,7 +72,7 @@ if [[ -e $USER_XSL ]]; then
     mv "$xsl_file" "$xsl_file_nospaces"
 # If optional directory does not exist, use the Philips embedded XSL Stylesheet
 else
-    xsl_file=$FLYWHEEL/IsmrmrdPhilips.xsl
+    xsl_file_nospaces=$FLYWHEEL/IsmrmrdPhilips.xsl
 fi
 
 # Get output file extension from config file, if it exists
