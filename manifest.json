@@ -54,5 +54,5 @@
     "name": "philips-to-ismrmrd", 
     "source": "https://github.com/flywheel-apps/philips_to_ismrmrd", 
     "url": "https://github.com/ismrmrd/philips_to_ismrmrd", 
-    "version": "0.1"
+    "version": "0.1rc5"
 }

@@ -47,22 +47,29 @@ if [[ ! -e $sin_file ]]; then
     exit 1
 fi
 
-# Move all of the files together into one directory 
-cp $lab_file $RAW_DIR
-cp $sin_file $RAW_DIR
 
 # Get filename of raw file (to be used in output file naming scheme)
 rawdirname=`dirname "$raw_file"`
 bni=`basename "$raw_file"`
 rawfilename="${bni%%.*}"
 
+# Move all of the files together into one directory 
+# Also, remove any spaces within filename. philips_to_ismrmrd cannot handle spaces 
+filename_nospaces="${rawfilename// /_}"
+
+mv "$raw_file" "$RAW_DIR/$filename_nospaces.raw"
+mv "$lab_file" "$RAW_DIR/$filename_nospaces.lab"
+mv "$sin_file" "$RAW_DIR/$filename_nospaces.sin"
+
 # If optional directory exists search for user-supplied XSL file
 if [[ -e $USER_XSL ]]; then
     xsl_file=`find $USER_XSL -iname '*.xsl'`
-    if [[ ! -e $xsl_file ]]; then
+    if [[ ! -e "$xsl_file" ]]; then
         echo "No stylesheet file (.xsl) was found within input directory $USER_XSL"
         exit 1
     fi
+    xsl_file_nospaces="${xsl_file// /_}"
+    mv "$xsl_file" "$xsl_file_nospaces"
 # If optional directory does not exist, use the Philips embedded XSL Stylesheet
 else
     xsl_file=$FLYWHEEL/IsmrmrdPhilips.xsl
@@ -87,7 +94,7 @@ fi
 
 ## Call philips_to_ismrmrd
 # NOTE: filename passed to commandline through -f should not have an extension
-cmd="philips_to_ismrmrd -f $rawdirname/$rawfilename -o $OUTPUT_DIR/$rawfilename.h5 --pMapStyle $xsl_file $debug_cmd"
+cmd="philips_to_ismrmrd -f $rawdirname/$filename_nospaces -o $OUTPUT_DIR/$filename_nospaces.h5 --pMapStyle $xsl_file_nospaces $debug_cmd"
 echo $cmd
 # cd into output directory incase of debug files being generated
 cd $OUTPUT_DIR && $cmd
@@ -96,8 +103,9 @@ cd $OUTPUT_DIR && $cmd
 for debugfile in 'processed.xml' 'raw.xml'
 do
     debugfile_full=$OUTPUT_DIR/$debugfile
+    echo $debugfile_full
     if [[ -e $debugfile_full ]]; then
-        mv $debugfile_full $OUTPUT_DIR/"$rawfilename"_"$debugfile"
+        mv $debugfile_full $OUTPUT_DIR/$filename_nospaces"_"$debugfile
     fi
 done
 
