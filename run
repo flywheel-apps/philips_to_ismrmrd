@@ -103,7 +103,6 @@ cd $OUTPUT_DIR && $cmd
 for debugfile in 'processed.xml' 'raw.xml'
 do
     debugfile_full=$OUTPUT_DIR/$debugfile
-    echo $debugfile_full
     if [[ -e $debugfile_full ]]; then
         mv $debugfile_full $OUTPUT_DIR/$filename_nospaces"_"$debugfile
     fi
