@@ -10,7 +10,7 @@
     "custom": {
         "docker-image": "flywheel/philips_to_ismrmrd:v0.1"
     }, 
-    "description": "The Philips to ISMRM-RD Convertor is used to convert data from Philips Raw file (.raw) to ISMRM-RD raw data format (.h5).", 
+    "description": "The Philips to ISMRM-RD Convertor (philips_to_ismrmrd v0.1.0, ismrmrd v1.3.2) is used to convert data from Philips Raw file (.raw) to ISMRM-RD raw data format (.h5).", 
     "inputs": {
         "raw": {
             "base": "file", 
@@ -48,7 +48,7 @@
             "optional": true
         }
     }, 
-    "label": "Philips to ISMRM-RD Converter", 
+    "label": "Philips to ISMRM-RD Converter (philips_to_ismrmrd v0.1.0, ismrmrd v1.3.2)", 
     "license": "Other", 
     "maintainer": "Jennifer Reiter <jenniferreiter@invenshure.com>", 
     "name": "philips-to-ismrmrd", 
