@@ -57,9 +57,9 @@ rawfilename="${bni%%.*}"
 # Also, remove any spaces within filename. philips_to_ismrmrd cannot handle spaces 
 filename_nospaces="${rawfilename// /_}"
 
-mv "$raw_file" "$RAW_DIR/$filename_nospaces.raw"
-mv "$lab_file" "$RAW_DIR/$filename_nospaces.lab"
-mv "$sin_file" "$RAW_DIR/$filename_nospaces.sin"
+cp "$raw_file" "$RAW_DIR/$filename_nospaces.raw"
+cp "$lab_file" "$RAW_DIR/$filename_nospaces.lab"
+cp "$sin_file" "$RAW_DIR/$filename_nospaces.sin"
 
 # If optional directory exists search for user-supplied XSL file
 if [[ -e $USER_XSL ]]; then
@@ -98,6 +98,10 @@ cmd="philips_to_ismrmrd -f $rawdirname/$filename_nospaces -o $OUTPUT_DIR/$filena
 echo $cmd
 # cd into output directory incase of debug files being generated
 cd $OUTPUT_DIR && $cmd
+
+# Clean up the copied over philips data
+rm -r "$RAW_DIR/$filename_nospaces.lab"
+rm -r "$RAW_DIR/$filename_nospaces.sin"
 
 # Rename the debug files, if present
 for debugfile in 'processed.xml' 'raw.xml'
