@@ -1,0 +1,126 @@
+#! /bin/bash
+# This script is meant to evoke the algorithm without requiring any input arguments
+#
+
+# Define directory names
+FLYWHEEL_BASE=/flywheel/v0
+MANIFEST_FILE=$FLYWHEEL_BASE/manifest.json
+CONFIG_FILE=$FLYWHEEL_BASE/config.json
+# Base input directory
+INPUT_DIR=$FLYWHEEL_BASE/input
+# Philips directory
+RAW_DIR=$INPUT_DIR/raw
+LAB_DIR=$INPUT_DIR/lab
+SIN_DIR=$INPUT_DIR/sin
+# XSL directory (optional)
+USER_XSL=$INPUT_DIR/user_stylesheet
+# Output
+OUTPUT_DIR=$FLYWHEEL_BASE/output
+
+CONTAINER='[flywheel/philips_to_ismrmrd]'
+
+# Configure the ENV according to the original Docker image
+source ${FLYWHEEL_BASE}/docker-env.sh
+
+# Check if the input directory is not empty
+if [[ "$(ls -A $INPUT_DIR)" ]] ; then
+    echo "$CONTAINER  Starting..."
+else
+    echo "Input directory is empty: $INPUT_DIR"
+    exit 1
+fi
+
+# Assert .raw, .lab and .sin files are present within the designated directories
+raw_file=`find $RAW_DIR -iname '*.raw'`
+if [[ ! -e $raw_file ]]; then
+    echo "No Philips Raw file (.raw) was found within input directory $INPUT_DIR"
+    exit 1
+fi
+lab_file=`find $LAB_DIR -iname '*.lab'`
+if [[ ! -e $lab_file ]]; then
+    echo "No Philips lab file (.lab) was found within input directory $INPUT_DIR"
+    exit 1
+fi
+sin_file=`find $SIN_DIR -iname '*.sin'`
+if [[ ! -e $sin_file ]]; then
+    echo "No Philips sin file (.sin) was found within input directory $INPUT_DIR"
+    exit 1
+fi
+
+
+# Get filename of raw file (to be used in output file naming scheme)
+rawdirname=`dirname "$raw_file"`
+bni=`basename "$raw_file"`
+rawfilename="${bni%%.*}"
+
+# Move all of the files together into one directory 
+# Also, remove any spaces within filename. philips_to_ismrmrd cannot handle spaces 
+filename_nospaces="${rawfilename// /_}"
+
+cp "$raw_file" "$RAW_DIR/$filename_nospaces.raw"
+cp "$lab_file" "$RAW_DIR/$filename_nospaces.lab"
+cp "$sin_file" "$RAW_DIR/$filename_nospaces.sin"
+
+# If optional directory exists search for user-supplied XSL file
+if [[ -e $USER_XSL ]]; then
+    xsl_file=`find $USER_XSL -iname '*.xsl'`
+    if [[ ! -e "$xsl_file" ]]; then
+        echo "No stylesheet file (.xsl) was found within input directory $USER_XSL"
+        exit 1
+    fi
+    xsl_file_nospaces="${xsl_file// /_}"
+    mv "$xsl_file" "$xsl_file_nospaces"
+# If optional directory does not exist, use the Philips embedded XSL Stylesheet
+else
+    xsl_file_nospaces=$FLYWHEEL/IsmrmrdPhilips.xsl
+fi
+
+# Get output file extension from config file, if it exists
+if [[ -e $CONFIG_FILE ]]; then
+    echo "Config file is present"
+    debug=`cat $CONFIG_FILE | jq -r '.config.debug'`
+else
+    echo "Config file is not present, using default values"
+    debug=`cat $MANIFEST_FILE | jq -r '.config.debug.default'`
+fi
+
+### Sort through different configurations to add to command
+# Define debug command
+if [[ $debug = 'true' ]]; then
+    debug_cmd="--debug"
+else
+    debug_cmd=""
+fi
+
+## Call philips_to_ismrmrd
+# NOTE: filename passed to commandline through -f should not have an extension
+cmd="philips_to_ismrmrd -f $rawdirname/$filename_nospaces -o $OUTPUT_DIR/$filename_nospaces.h5 --pMapStyle $xsl_file_nospaces $debug_cmd"
+echo $cmd
+# cd into output directory incase of debug files being generated
+cd $OUTPUT_DIR && $cmd
+
+# Clean up the copied over philips data
+rm -r "$RAW_DIR/$filename_nospaces.lab"
+rm -r "$RAW_DIR/$filename_nospaces.sin"
+
+# Rename the debug files, if present
+for debugfile in 'processed.xml' 'raw.xml'
+do
+    debugfile_full=$OUTPUT_DIR/$debugfile
+    if [[ -e $debugfile_full ]]; then
+        mv $debugfile_full $OUTPUT_DIR/$filename_nospaces"_"$debugfile
+    fi
+done
+
+# Get a list of the files in the output directory
+outputs=`find $OUTPUT_DIR -type f -name "*"`
+# If outputs exist, then go on...
+if [[ -z $outputs ]]; then
+    echo "No results found in output directory... Exiting"
+    exit 1
+else
+    chmod -R 777 $OUTPUT_DIR
+    echo -e "Wrote: `ls $OUTPUT_DIR`"
+fi
+
+exit 0
